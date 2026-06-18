@@ -1,0 +1,124 @@
+version: 2
+
+models:
+  - name: sla_by_marketplace
+    description: "SLA metrics (avg, p50, p95, max sync time in seconds) per marketplace."
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: marketplace
+        data_type: string
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+          - unique
+      - name: total_synced
+        data_type: integer
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: avg_sync_seconds
+        data_type: float64
+      - name: p50_sync_seconds
+        data_type: float64
+        data_tests:
+          - dbt_utils_positive_or_null:
+              column_name: p50_sync_seconds
+      - name: p95_sync_seconds
+        data_type: float64
+      - name: max_sync_seconds
+        data_type: float64
+
+  - name: error_trends
+    description: "Daily cancellation rate per marketplace."
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: order_date
+        data_type: date
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: marketplace
+        data_type: string
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: total_orders
+        data_type: integer
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: cancelled
+        data_type: integer
+      - name: cancellation_rate_pct
+        data_type: float64
+
+  - name: daily_throughput
+    description: "Daily webhooks received and orders created per marketplace."
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: date
+        data_type: date
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: marketplace
+        data_type: string
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: webhooks_received
+        data_type: integer
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: orders_created
+        data_type: integer
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+
+  - name: dlq_root_causes
+    description: "Orders never synced (pending/cancelled with no last_sync_at)."
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: marketplace
+        data_type: string
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: status
+        data_type: string
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: stuck_orders
+        data_type: integer
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: oldest_stuck_at
+        data_type: timestamp
+      - name: newest_stuck_at
+        data_type: timestamp
+      - name: max_age_hours
+        data_type: integer

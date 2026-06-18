@@ -1,0 +1,106 @@
+version: 2
+
+models:
+  - name: orders_normalized
+    description: "Deduplicated silver orders — one row per marketplace order, latest snapshot."
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: internal_id
+        description: "Postgres primary key."
+        data_type: integer
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: odoo_order_id
+        description: "Linked Odoo sale.order ID (nullable until reconciled)."
+        data_type: integer
+      - name: marketplace
+        description: "Marketplace name."
+        data_type: string
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ["mercadolibre", "paris"]
+      - name: marketplace_order_id
+        description: "Marketplace-assigned order ID."
+        data_type: string
+      - name: status
+        description: "Current order status."
+        data_type: string
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ["pending", "confirmed", "shipped", "delivered", "cancelled"]
+      - name: last_sync_at
+        description: "When the order was last synced to the marketplace."
+        data_type: timestamp
+      - name: created_at
+        description: "Order creation timestamp."
+        data_type: timestamp
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: updated_at
+        description: "Last update timestamp."
+        data_type: timestamp
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: ingested_at
+        description: "When bq_sync loaded this row."
+        data_type: timestamp
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+
+  - name: events_normalized
+    description: "Deduplicated silver webhook events — one row per (source, event_id)."
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: id
+        description: "Postgres row ID."
+        data_type: integer
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: event_id
+        description: "Marketplace event identifier."
+        data_type: string
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: source
+        description: "Marketplace name."
+        data_type: string
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: received_at
+        description: "When the event was received."
+        data_type: timestamp
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null
+      - name: ingested_at
+        description: "When bq_sync loaded this row."
+        data_type: timestamp
+        constraints:
+          - type: not_null
+        data_tests:
+          - not_null

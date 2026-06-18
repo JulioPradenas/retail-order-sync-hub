@@ -7,7 +7,7 @@ emulator, never real GCP. Run via ``uv run python -m scripts.init_pubsub``.
 from __future__ import annotations
 
 from google.api_core.exceptions import AlreadyExists
-from google.cloud import pubsub_v1
+from google.cloud import pubsub_v1  # type: ignore[attr-defined]
 from src.common.config import get_settings
 from src.common.logging import configure_logging, get_logger
 
