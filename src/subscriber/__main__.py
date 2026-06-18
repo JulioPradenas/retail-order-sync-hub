@@ -19,7 +19,7 @@ log = get_logger()
 
 
 def run_forever() -> None:
-    from google.cloud import pubsub_v1
+    from google.cloud import pubsub_v1  # type: ignore[attr-defined]
 
     settings = get_settings()
     subscriber = pubsub_v1.SubscriberClient()

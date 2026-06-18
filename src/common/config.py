@@ -78,6 +78,15 @@ class Settings(BaseSettings):
     pubsub_topic_sync_dlq: str = "marketplace.sync.dlq"
     pubsub_sub_sync_dlq: str = "marketplace.sync.dlq.sub"
 
+    # BigQuery (Phase 7)
+    bq_project_id: str = "retail-order-sync-hub"
+    bq_location: str = "US"
+    bq_bronze_dataset: str = "bronze"
+    bq_silver_dataset: str = "silver"
+    bq_gold_dataset: str = "gold"
+    # rows per BQ insert batch
+    bq_batch_size: int = 500
+
     @property
     def app_db_dsn(self) -> str:
         """SQLAlchemy DSN for the operational Postgres (psycopg 3 driver)."""

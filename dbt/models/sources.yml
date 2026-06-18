@@ -1,0 +1,56 @@
+version: 2
+
+sources:
+  - name: bronze
+    database: retail-order-sync-hub
+    schema: bronze
+    description: "Raw data ingested from Postgres operational DB (bq_sync)."
+    tables:
+      - name: raw_webhooks
+        description: "Copy of webhook_log — all inbound marketplace events."
+        columns:
+          - name: id
+            description: "Postgres primary key."
+            data_tests:
+              - not_null
+              - unique
+          - name: event_id
+            description: "Marketplace-assigned event identifier."
+            data_tests:
+              - not_null
+          - name: source
+            description: "Marketplace name (mercadolibre | paris)."
+            data_tests:
+              - not_null
+              - accepted_values:
+                  values: ["mercadolibre", "paris"]
+          - name: received_at
+            data_tests:
+              - not_null
+          - name: ingested_at
+            data_tests:
+              - not_null
+
+      - name: raw_orders
+        description: "Snapshot of orders silver table (updated_at watermark)."
+        columns:
+          - name: internal_id
+            description: "Postgres primary key."
+            data_tests:
+              - not_null
+          - name: marketplace
+            data_tests:
+              - not_null
+              - accepted_values:
+                  values: ["mercadolibre", "paris"]
+          - name: status
+            data_tests:
+              - not_null
+              - accepted_values:
+                  values: ["pending", "confirmed", "shipped", "delivered", "cancelled"]
+          - name: updated_at
+            data_tests:
+              - not_null
+          - name: ingested_at
+            data_tests:
+              - not_null

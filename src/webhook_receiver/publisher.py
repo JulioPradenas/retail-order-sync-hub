@@ -15,7 +15,7 @@ class PubSubPublisher:
     """Publishes to Pub/Sub. The client reads ``PUBSUB_EMULATOR_HOST`` itself."""
 
     def __init__(self, settings: Settings | None = None) -> None:
-        from google.cloud import pubsub_v1
+        from google.cloud import pubsub_v1  # type: ignore[attr-defined]
 
         self._settings = settings or get_settings()
         self._client = pubsub_v1.PublisherClient()
