@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     outbox_max_attempts: int = 5
     outbox_poll_interval_seconds: float = 5.0
 
+    # Reconciler (safety-net polling)
+    reconciler_interval_seconds: float = 900.0
+
     # MercadoLibre inbound webhook secret (HMAC shared secret)
     ml_webhook_secret: str = "change-me"
 
