@@ -54,6 +54,13 @@ class Settings(BaseSettings):
     paris_api_key: str = "change-me"
     paris_api_secret: str = "change-me"
     paris_mock_db_path: str = "paris_mock.db"
+    paris_base_url: str = "http://localhost:9100"
+    #: max in-adapter HTTP attempts (transient errors / 429); durable retry lives in the outbox
+    adapter_max_attempts: int = 4
+
+    # Outbox worker
+    outbox_max_attempts: int = 5
+    outbox_poll_interval_seconds: float = 5.0
 
     # MercadoLibre inbound webhook secret (HMAC shared secret)
     ml_webhook_secret: str = "change-me"
@@ -65,6 +72,8 @@ class Settings(BaseSettings):
     pubsub_sub_events: str = "marketplace.events.sub"
     pubsub_topic_dlq: str = "marketplace.dlq"
     pubsub_sub_dlq: str = "marketplace.dlq.sub"
+    pubsub_topic_sync_dlq: str = "marketplace.sync.dlq"
+    pubsub_sub_sync_dlq: str = "marketplace.sync.dlq.sub"
 
     @property
     def app_db_dsn(self) -> str:

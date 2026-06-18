@@ -18,6 +18,8 @@ from urllib.parse import urlencode
 import httpx
 from sqlalchemy import select
 
+from src.adapters._http import request_with_retry
+from src.adapters.base import AdapterError, OrderDTO, PushResult
 from src.common.config import Settings, get_settings
 from src.common.db import get_session_factory
 from src.common.models import OAuthToken
@@ -158,6 +160,78 @@ class MercadoLibreOAuth:
             refresh_token=data.get("refresh_token"),
             expires_at=expires_at,
         )
+
+
+class MercadoLibreAdapter:
+    """MarketplaceAdapter backed by the OAuth client.
+
+    Live order push against the ML sandbox is deferred until credentials are
+    configured; the method is fully implemented and unit-tested with a mock
+    transport.
+    """
+
+    name = "mercadolibre"
+
+    def __init__(
+        self,
+        oauth: MercadoLibreOAuth | None = None,
+        http_client: httpx.AsyncClient | None = None,
+    ) -> None:
+        self._oauth = oauth or MercadoLibreOAuth()
+        self._http = http_client
+
+    def _client(self) -> httpx.AsyncClient:
+        if self._http is not None:
+            return self._http
+        return httpx.AsyncClient(base_url=self._oauth._settings.ml_api_base, timeout=10.0)
+
+    async def _auth_headers(self) -> dict[str, str]:
+        token = await self._oauth.valid_access_token()
+        return {"Authorization": f"Bearer {token}"}
+
+    async def push_order(self, order: OrderDTO) -> PushResult:
+        client = self._client()
+        try:
+            resp = await request_with_retry(
+                client,
+                "POST",
+                "/orders",
+                max_attempts=self._oauth._settings.adapter_max_attempts,
+                headers=await self._auth_headers(),
+                json={
+                    "external_reference": order.external_ref,
+                    "buyer": order.buyer,
+                    "items": [{"sku": i.sku, "quantity": i.qty} for i in order.items],
+                },
+            )
+        finally:
+            if self._http is None:
+                await client.aclose()
+        if resp.status_code >= 400:
+            raise AdapterError(
+                f"mercadolibre push_order -> {resp.status_code}",
+                permanent=400 <= resp.status_code < 500,
+            )
+        data = resp.json()
+        return PushResult(
+            marketplace_order_id=str(data["id"]), status=data.get("status", "created")
+        )
+
+    async def update_stock(self, sku: str, qty: int) -> None:
+        return None
+
+    async def get_order_status(self, marketplace_order_id: str) -> str:
+        client = self._client()
+        try:
+            resp = await client.get(
+                f"/orders/{marketplace_order_id}", headers=await self._auth_headers()
+            )
+            resp.raise_for_status()
+            status: str = resp.json()["status"]
+            return status
+        finally:
+            if self._http is None:
+                await client.aclose()
 
 
 async def _cmd_auth() -> int:

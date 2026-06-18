@@ -86,3 +86,37 @@ def test_webhook_receiver_writes_bronze_and_dedupes() -> None:
             {"eid": event_id},
         ).scalar()
     assert count == 1  # idempotent: single bronze row despite two deliveries
+
+
+def test_outbox_pushes_order_to_paris() -> None:
+    import asyncio
+
+    from src.adapters.base import OrderDTO, OrderItemDTO
+    from src.adapters.paris import ParisAdapter
+    from src.outbox_worker.enqueue import enqueue_orders
+    from src.outbox_worker.processor import process_pending
+
+    odoo_id = 900000 + (uuid.uuid4().int % 90000)
+    order = OrderDTO(
+        odoo_order_id=odoo_id,
+        buyer="Comex",
+        items=[OrderItemDTO(sku="ROSH-MUG-002", qty=1)],
+        external_ref=f"odoo-{odoo_id}",
+    )
+    enqueue_orders([order], ["paris"])
+    # enqueuing again is a no-op (idempotent by aggregate_id + target)
+    assert enqueue_orders([order], ["paris"]) == 0
+
+    class _NoPublisher:
+        def publish(self, topic: str, data: bytes, **attributes: str) -> str:
+            return "noop"
+
+    asyncio.run(process_pending({"paris": ParisAdapter()}, publisher=_NoPublisher()))
+
+    engine = make_engine()
+    with engine.connect() as conn:
+        status = conn.execute(
+            text("SELECT status FROM outbox WHERE aggregate_id = :a AND target_adapter = 'paris'"),
+            {"a": str(odoo_id)},
+        ).scalar()
+    assert status == "done"
