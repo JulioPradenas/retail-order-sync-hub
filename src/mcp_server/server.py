@@ -24,6 +24,7 @@ from src.mcp_server.queries import (
     get_outbox_entries,
     get_webhook_events,
 )
+from src.mcp_server.write_tools import _drain_dlq, _replay_dlq_message, _retry_failed_sync
 
 mcp = FastMCP(
     "retail-order-sync-hub",
@@ -150,3 +151,26 @@ get_sla_metrics = mcp.tool(
 find_failed_orders_tool = mcp.tool(
     description="Find orders that were created but never successfully synced to a marketplace."
 )(_find_failed_orders)
+
+# --- Write tools (Phase 9) ---
+
+replay_dlq_message = mcp.tool(
+    description=(
+        "Reset a DLQ outbox entry back to pending so the worker retries it. "
+        "Scope: dlq.replay. Audited."
+    )
+)(_replay_dlq_message)
+
+retry_failed_sync = mcp.tool(
+    description=(
+        "Force re-enqueue of an order into the outbox for all active adapters. "
+        "Scope: outbox.retry. Audited."
+    )
+)(_retry_failed_sync)
+
+drain_dlq = mcp.tool(
+    description=(
+        "List (dry_run=True) or bulk-reset (dry_run=False) all DLQ outbox entries. "
+        "Scope: dlq.admin. Audited."
+    )
+)(_drain_dlq)
