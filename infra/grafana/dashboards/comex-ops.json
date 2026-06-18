@@ -1,0 +1,163 @@
+{
+  "uid": "rosh-comex-ops",
+  "title": "ROSH — Comex Ops",
+  "description": "Business-level view: webhook throughput, sync outcomes, DLQ depth.",
+  "tags": ["rosh", "ops"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Webhooks recibidos / min",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (source, dedup_status) (rate(webhook_received_total[1m]) * 60)",
+          "legendFormat": "{{source}} / {{dedup_status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqpm", "min": 0 }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Order sync outcomes / min",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (target_adapter, status) (rate(order_sync_total[1m]) * 60)",
+          "legendFormat": "{{target_adapter}} / {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqpm", "min": 0 },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": ".*dlq.*" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": ".*retry.*" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": ".*done.*" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "DLQ depth (órdenes bloqueadas)",
+      "gridPos": { "x": 0, "y": 8, "w": 6, "h": 6 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "dlq_depth",
+          "legendFormat": "DLQ"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 5 },
+              { "color": "red", "value": 10 }
+            ]
+          },
+          "mappings": []
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Outbox pendiente",
+      "gridPos": { "x": 6, "y": 8, "w": 6, "h": 6 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "outbox_pending",
+          "legendFormat": "Pending"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 20 },
+              { "color": "red", "value": 50 }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Tasa de error sync (5m)",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 6 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(order_sync_total{status=\"dlq\"}[5m])) / clamp_min(sum(rate(order_sync_total[5m])), 0.0001)",
+          "legendFormat": "Error rate"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.02 },
+              { "color": "red", "value": 0.05 }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Latencia push (p50 / p95 / p99)",
+      "gridPos": { "x": 0, "y": 14, "w": 24, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, target_adapter) (rate(order_sync_duration_seconds_bucket[5m])))",
+          "legendFormat": "p50 {{target_adapter}}"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, target_adapter) (rate(order_sync_duration_seconds_bucket[5m])))",
+          "legendFormat": "p95 {{target_adapter}}"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le, target_adapter) (rate(order_sync_duration_seconds_bucket[5m])))",
+          "legendFormat": "p99 {{target_adapter}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "min": 0 }
+      }
+    }
+  ]
+}

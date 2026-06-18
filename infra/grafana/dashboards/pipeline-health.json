@@ -1,0 +1,132 @@
+{
+  "uid": "rosh-pipeline-health",
+  "title": "ROSH — Pipeline Health",
+  "description": "Infrastructure health: collector pipeline, HTTP latency (auto-instrumentation), Prometheus targets.",
+  "tags": ["rosh", "infra"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "OTel Collector — spans recibidos / s",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(otelcol_receiver_accepted_spans_total[1m])",
+          "legendFormat": "accepted"
+        },
+        {
+          "expr": "rate(otelcol_receiver_refused_spans_total[1m])",
+          "legendFormat": "refused"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "min": 0 }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "OTel Collector — métricas exportadas / s",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(otelcol_exporter_sent_metric_points_total[1m])",
+          "legendFormat": "sent ({{exporter}})"
+        },
+        {
+          "expr": "rate(otelcol_exporter_send_failed_metric_points_total[1m])",
+          "legendFormat": "failed ({{exporter}})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "min": 0 }
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "HTTP outbound — latencia p50/p95 (httpx auto-instr)",
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, http_host) (rate(http_client_duration_milliseconds_bucket[5m])))",
+          "legendFormat": "p50 {{http_host}}"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, http_host) (rate(http_client_duration_milliseconds_bucket[5m])))",
+          "legendFormat": "p95 {{http_host}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "min": 0 }
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "FastAPI — requests / s por endpoint",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (http_route, http_method) (rate(http_server_duration_milliseconds_count[1m]))",
+          "legendFormat": "{{http_method}} {{http_route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "min": 0 }
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "FastAPI — latencia p95 por endpoint",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, http_route) (rate(http_server_duration_milliseconds_bucket[5m])))",
+          "legendFormat": "p95 {{http_route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "min": 0 }
+      }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Prometheus — estado de scrape targets",
+      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 6 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "up",
+          "legendFormat": "{{job}} / {{instance}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ]
+        }
+      },
+      "options": { "colorMode": "background" }
+    }
+  ]
+}

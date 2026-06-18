@@ -7,11 +7,14 @@ from __future__ import annotations
 
 import asyncio
 
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+
 from src.adapters.base import MarketplaceAdapter
 from src.common.config import Settings, get_settings
 from src.common.logging import configure_logging, get_logger
+from src.common.metrics import register_db_gauges
 from src.common.odoo import OdooClient
-from src.common.otel import setup_tracing
+from src.common.otel import setup_metrics, setup_tracing
 from src.outbox_worker.enqueue import enqueue_orders
 from src.outbox_worker.processor import default_adapters, process_pending
 from src.outbox_worker.source import fetch_confirmed_orders
@@ -48,6 +51,12 @@ def main() -> None:
         service_name=f"{settings.otel_service_name}-outbox-worker",
         endpoint=settings.otel_exporter_otlp_endpoint,
     )
+    setup_metrics(
+        service_name=f"{settings.otel_service_name}-outbox-worker",
+        endpoint=settings.otel_exporter_otlp_endpoint,
+    )
+    HTTPXClientInstrumentor().instrument()
+    register_db_gauges()
     asyncio.run(run_forever())
 
 

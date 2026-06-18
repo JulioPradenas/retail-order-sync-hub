@@ -1,0 +1,31 @@
+groups:
+  - name: rosh-ops
+    rules:
+      - alert: DLQDepthHigh
+        expr: dlq_depth > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DLQ depth above 10"
+          description: "Sync DLQ has {{ $value }} messages — orders are failing to sync."
+
+      - alert: OutboxBacklogHigh
+        expr: outbox_pending > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Outbox backlog above 50"
+          description: "{{ $value }} orders pending outbound sync for over 5 minutes."
+
+      - alert: SyncErrorRateHigh
+        expr: >
+          sum(rate(order_sync_total{status="dlq"}[5m]))
+          / clamp_min(sum(rate(order_sync_total[5m])), 0.0001) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Order sync error rate above 5%"
+          description: "More than 5% of order pushes are landing in the DLQ."
