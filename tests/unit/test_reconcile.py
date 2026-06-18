@@ -49,6 +49,11 @@ def test_reconcile_to_odoo_writes_then_is_idempotent() -> None:
     assert odoo.writes == 1
 
 
+def test_reconcile_to_odoo_returns_false_when_order_not_found() -> None:
+    odoo = FakeOdoo(note=None)
+    assert reconcile_to_odoo(cast(OdooClient, odoo), 9999, "delivered") is False
+
+
 def test_reconcile_once_detects_and_fixes_drift() -> None:
     odoo = FakeOdoo(note=None)
     session = cast(Session, FakeSession([(1, "delivered")]))
