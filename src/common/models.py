@@ -80,6 +80,9 @@ class OutboxEntry(Base):
     """Transactional outbox for outbound marketplace sync."""
 
     __tablename__ = "outbox"
+    __table_args__ = (
+        UniqueConstraint("aggregate_id", "target_adapter", name="uq_outbox_aggregate_target"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     aggregate_type: Mapped[str] = mapped_column(String(50))

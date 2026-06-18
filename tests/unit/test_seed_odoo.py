@@ -1,7 +1,8 @@
 from typing import Any
 
 import pytest
-from scripts.seed_odoo import ORDER_REF, OdooClient, seed
+from scripts.seed_odoo import ORDER_REF, seed
+from src.common.odoo import OdooClient
 
 
 def test_upsert_creates_when_absent(monkeypatch: pytest.MonkeyPatch) -> None:

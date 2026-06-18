@@ -23,6 +23,7 @@ def init_pubsub() -> None:
     pairs = [
         (settings.pubsub_topic_events, settings.pubsub_sub_events),
         (settings.pubsub_topic_dlq, settings.pubsub_sub_dlq),
+        (settings.pubsub_topic_sync_dlq, settings.pubsub_sub_sync_dlq),
     ]
     for topic, sub in pairs:
         topic_path = publisher.topic_path(project, topic)

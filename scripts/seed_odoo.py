@@ -11,11 +11,11 @@ Usage:
 from __future__ import annotations
 
 import sys
-import xmlrpc.client
-from typing import Any, cast
+from typing import Any
 
-from src.common.config import Settings, get_settings
+from src.common.config import get_settings
 from src.common.logging import configure_logging, get_logger
+from src.common.odoo import OdooClient
 
 log = get_logger()
 
@@ -30,36 +30,6 @@ PARTNERS: list[dict[str, Any]] = [
     {"ref": "ROSH-CUST-002", "name": "Retail Demo Client", "email": "demo.client@example.cl"},
 ]
 ORDER_REF = "ROSH-ORDER-0001"
-
-
-class OdooClient:
-    """Thin idempotent XML-RPC wrapper around the Odoo external API."""
-
-    def __init__(self, settings: Settings) -> None:
-        self._db = settings.odoo_db
-        self._password = settings.odoo_password
-        common = xmlrpc.client.ServerProxy(f"{settings.odoo_url}/xmlrpc/2/common")
-        uid = common.authenticate(self._db, settings.odoo_user, self._password, {})
-        if not uid:
-            raise RuntimeError("Odoo authentication failed — check ODOO_* settings")
-        self._uid: int = cast(int, uid)
-        self._models = xmlrpc.client.ServerProxy(f"{settings.odoo_url}/xmlrpc/2/object")
-
-    def execute(self, model: str, method: str, *args: Any, **kwargs: Any) -> Any:
-        return self._models.execute_kw(
-            self._db, self._uid, self._password, model, method, list(args), kwargs
-        )
-
-    def upsert(self, model: str, key_field: str, values: dict[str, Any]) -> int:
-        """Create or update a record matched by ``key_field``; return its id."""
-        existing: list[int] = self.execute(
-            model, "search", [(key_field, "=", values[key_field])], limit=1
-        )
-        if existing:
-            record_id = existing[0]
-            self.execute(model, "write", [record_id], values)
-            return record_id
-        return int(self.execute(model, "create", values))
 
 
 def seed(client: OdooClient) -> dict[str, Any]:
