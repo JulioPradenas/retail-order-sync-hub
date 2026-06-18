@@ -40,3 +40,11 @@ def require_scope(token: str, scope: str) -> None:
             f"Token does not have required scope '{scope}'. "
             f"Granted scopes: {sorted(granted) or 'none'}."
         )
+
+
+# Role presets — convenience for generating static token values.
+ROLES: dict[str, frozenset[str]] = {
+    "viewer": frozenset({"orders.read", "metrics.read"}),
+    "operator": frozenset({"orders.read", "metrics.read", "outbox.retry", "dlq.replay"}),
+    "admin": frozenset({"orders.read", "metrics.read", "outbox.retry", "dlq.replay", "dlq.admin"}),
+}
