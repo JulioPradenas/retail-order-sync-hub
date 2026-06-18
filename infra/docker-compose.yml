@@ -1,9 +1,8 @@
 # Local stack — Retail Order Sync Hub
 #
-# Phase 0: skeleton only. Networks and volumes are declared so later phases
-# just attach services. Real services land here starting in Phase 1
-# (odoo, odoo_db, app_db, otel-collector) and Phase 3 (pubsub-emulator,
-# webhook_receiver, paris_mock).
+# Phase 1: Odoo (source of truth) + dedicated Odoo Postgres + operational
+# Postgres (app_db) + OTel collector (stdout). Marketplace services
+# (paris_mock, pubsub-emulator, webhook_receiver) land in Phase 2/3.
 
 name: retail-order-sync-hub
 
@@ -16,14 +15,75 @@ volumes:
   app_db_data:
   odoo_filestore:
 
-services: {}
-  # --- Phase 1 ---
-  # odoo_db:        # PostgreSQL 16 dedicated to Odoo
-  # app_db:         # PostgreSQL 16 for operational data (outbox, dedupe, orders, audit)
-  # odoo:           # Odoo 17 Community — source of truth
-  # otel-collector: # OTLP receiver, stdout exporter (phase 1) -> Tempo/Prometheus (phase 6)
-  #
-  # --- Phase 2/3 ---
-  # paris_mock:        # FastAPI mock marketplace (API key auth)
-  # pubsub-emulator:   # gcr.io/google.com/cloudsdktool/cloud-sdk:emulators
-  # webhook_receiver:  # FastAPI receiver (signature + dedupe + bronze + publish)
+services:
+  # PostgreSQL dedicated to Odoo (Odoo manages its own databases here).
+  odoo_db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_DB: postgres
+    volumes:
+      - odoo_db_data:/var/lib/postgresql/data
+    networks: [rosh]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Operational Postgres for outbox/dedupe/orders/audit (our schema via Alembic).
+  app_db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: rosh
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: rosh
+    ports:
+      - "5433:5432"
+    volumes:
+      - app_db_data:/var/lib/postgresql/data
+    networks: [rosh]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rosh -d rosh"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Odoo 17 Community — source of truth for catalog, customers and orders.
+  odoo:
+    image: odoo:17
+    depends_on:
+      odoo_db:
+        condition: service_healthy
+    environment:
+      HOST: odoo_db
+      USER: odoo
+      PASSWORD: odoo
+    # Initialize the `odoo` database with sales + product modules (no demo data)
+    # so the XML-RPC seed can create products, partners and sale orders.
+    # Idempotent across restarts (already-installed modules are skipped).
+    command: ["odoo", "--init", "base,sale_management", "--database", "odoo", "--without-demo", "all"]
+    ports:
+      - "8069:8069"
+    volumes:
+      - odoo_filestore:/var/lib/odoo
+    networks: [rosh]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8069/web/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+
+  # OpenTelemetry collector — receives OTLP, logs spans to stdout (Phase 1).
+  # Phase 6 swaps the debug exporter for Tempo + Prometheus.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.116.1
+    command: ["--config=/etc/otel-collector-config.yml"]
+    volumes:
+      - ./otel-collector-config.yml:/etc/otel-collector-config.yml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    networks: [rosh]

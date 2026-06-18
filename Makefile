@@ -5,7 +5,7 @@ SHELL := /bin/bash
 COMPOSE      := docker compose -f infra/docker-compose.yml
 COMPOSE_OBS  := docker compose -f infra/docker-compose.obs.yml
 
-.PHONY: help fix check test up down obs-up obs-down seed dbt-run dbt-test dbt-docs
+.PHONY: help fix check test up down logs migrate seed obs-up obs-down dbt-run dbt-test dbt-docs
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -32,6 +32,12 @@ up: ## Start the local stack
 down: ## Stop the local stack
 	$(COMPOSE) down
 
+logs: ## Tail logs of the local stack
+	$(COMPOSE) logs -f
+
+migrate: ## Apply Alembic migrations to app_db
+	uv run alembic upgrade head
+
 obs-up: ## Start the observability stack (Grafana/Prometheus/Tempo)
 	$(COMPOSE_OBS) up -d
 
@@ -39,7 +45,7 @@ obs-down: ## Stop the observability stack
 	$(COMPOSE_OBS) down
 
 seed: ## Seed Odoo with reproducible demo data
-	uv run python scripts/seed_odoo.py
+	uv run python -m scripts.seed_odoo
 
 dbt-run: ## Run dbt models
 	cd dbt && uv run dbt run
