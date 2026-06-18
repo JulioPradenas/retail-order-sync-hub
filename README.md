@@ -64,8 +64,8 @@ Targets disponibles: `make help`.
 
 ## Estado del proyecto
 
-Plan de ejecución por fases (V1, fases 0–11; V2 a GCP). Fase actual: **4 —
-Adapter + outbox + outbound sync**.
+Plan de ejecución por fases (V1, fases 0–11; V2 a GCP). Fase actual: **5 —
+Subscriber + reconciliación + silver**.
 
 | Fase | Descripción | Estado |
 |---|---|---|
@@ -73,7 +73,8 @@ Adapter + outbox + outbound sync**.
 | 1 | Odoo + Postgres + OTel collector | ✅ |
 | 2 | MercadoLibre OAuth + paris-mock | ✅ |
 | 3 | Webhook receiver + idempotencia + bronze | ✅ |
-| 4 | Adapter + outbox + outbound sync | 🟡 en curso |
+| 4 | Adapter + outbox + outbound sync | ✅ |
+| 5 | Subscriber + reconciliación + silver | 🟡 en curso |
 | 4 | Adapter + outbox + outbound sync | ⬜ |
 | 5 | Subscriber + reconciliación + silver | ⬜ |
 | 6 | Observabilidad (OTel + Grafana) | ⬜ |

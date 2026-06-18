@@ -165,6 +165,45 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     networks: [rosh]
 
+  # Subscriber (Phase 5) — consumes marketplace.events, writes silver, reconciles.
+  subscriber:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.app
+    command: ["python", "-m", "src.subscriber"]
+    depends_on:
+      app_db:
+        condition: service_healthy
+      pubsub-emulator:
+        condition: service_healthy
+      odoo:
+        condition: service_healthy
+    environment: &worker_env
+      APP_DB_HOST: app_db
+      APP_DB_PORT: "5432"
+      APP_DB_USER: rosh
+      APP_DB_PASSWORD: change-me
+      APP_DB_NAME: rosh
+      ODOO_URL: http://odoo:8069
+      PUBSUB_EMULATOR_HOST: pubsub-emulator:8085
+      PUBSUB_PROJECT_ID: retail-order-sync-local
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    networks: [rosh]
+
+  # Reconciler (Phase 5) — safety-net polling, fixes Odoo drift vs silver.
+  reconciler:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.app
+    command: ["python", "-m", "src.reconciler"]
+    depends_on:
+      app_db:
+        condition: service_healthy
+      odoo:
+        condition: service_healthy
+    environment: *worker_env
+    networks: [rosh]
+
   # paris-mock — controllable stand-in for the Paris marketplace (Phase 2).
   paris_mock:
     build:

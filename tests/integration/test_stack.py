@@ -120,3 +120,46 @@ def test_outbox_pushes_order_to_paris() -> None:
             {"a": str(odoo_id)},
         ).scalar()
     assert status == "done"
+
+
+def test_subscriber_writes_silver_from_bronze() -> None:
+    from src.common.config import get_settings
+    from src.common.db import session_scope
+    from src.common.models import WebhookLog
+    from src.subscriber.handler import handle_envelope
+
+    event_id = f"sub-{uuid.uuid4().hex[:10]}"
+    mk_order_id = f"pm-{uuid.uuid4().hex[:10]}"
+    raw = {
+        "event_id": event_id,
+        "source": "paris",
+        "order_id": mk_order_id,
+        "external_ref": "odoo-1",
+        "status": "delivered",
+    }
+    with session_scope() as session:
+        session.add(WebhookLog(event_id=event_id, source="paris", raw_body=raw, headers={}))
+
+    class _NoPub:
+        def publish(self, topic: str, data: bytes, **attributes: str) -> str:
+            return "noop"
+
+    with session_scope() as session:
+        outcome = handle_envelope(
+            {"event_id": event_id, "source": "paris"},
+            session=session,
+            settings=get_settings(),
+            publisher=_NoPub(),
+        )
+    assert outcome == "processed"
+
+    engine = make_engine()
+    with engine.connect() as conn:
+        status = conn.execute(
+            text(
+                "SELECT status FROM orders WHERE marketplace = 'paris' "
+                "AND marketplace_order_id = :m"
+            ),
+            {"m": mk_order_id},
+        ).scalar()
+    assert status == "delivered"
