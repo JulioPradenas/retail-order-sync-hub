@@ -78,6 +78,11 @@ class Settings(BaseSettings):
     pubsub_topic_sync_dlq: str = "marketplace.sync.dlq"
     pubsub_sub_sync_dlq: str = "marketplace.sync.dlq.sub"
 
+    # MCP server (Phase 8)
+    # Static token map: "<token>:<scope1>,<scope2>" pairs, semicolon-separated.
+    # Example: "secret123:orders.read,metrics.read;admin456:orders.read,metrics.read,dlq.admin"
+    mcp_static_tokens: str = "dev-token:orders.read,metrics.read"
+
     # BigQuery (Phase 7)
     bq_project_id: str = "retail-order-sync-hub"
     bq_location: str = "US"
