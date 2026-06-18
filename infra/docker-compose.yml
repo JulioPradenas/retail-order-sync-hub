@@ -89,6 +89,53 @@ services:
       - "4318:4318"   # OTLP HTTP
     networks: [rosh]
 
+  # Pub/Sub emulator (Phase 3) — same client as real GCP, no credentials.
+  pubsub-emulator:
+    image: google/cloud-sdk:emulators
+    command: >
+      gcloud beta emulators pubsub start
+      --host-port=0.0.0.0:8085
+      --project=retail-order-sync-local
+    ports:
+      - "8085:8085"
+    networks: [rosh]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8085 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # Webhook receiver (Phase 3) — signature + dedupe + bronze + publish.
+  webhook_receiver:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.app
+    command: ["python", "-m", "src.webhook_receiver"]
+    depends_on:
+      app_db:
+        condition: service_healthy
+      pubsub-emulator:
+        condition: service_healthy
+    environment:
+      APP_DB_HOST: app_db
+      APP_DB_PORT: "5432"
+      APP_DB_USER: rosh
+      APP_DB_PASSWORD: change-me
+      APP_DB_NAME: rosh
+      PUBSUB_EMULATOR_HOST: pubsub-emulator:8085
+      PUBSUB_PROJECT_ID: retail-order-sync-local
+      PARIS_API_SECRET: ${PARIS_API_SECRET:-change-me}
+      ML_WEBHOOK_SECRET: ${ML_WEBHOOK_SECRET:-change-me}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "8000:8000"
+    networks: [rosh]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
   # paris-mock — controllable stand-in for the Paris marketplace (Phase 2).
   paris_mock:
     build:
