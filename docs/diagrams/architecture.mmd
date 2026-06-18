@@ -1,0 +1,62 @@
+%% Retail Order Sync Hub — architecture (V1)
+%% Render: `mmdc -i architecture.mmd -o architecture.png` or any Mermaid viewer.
+flowchart TB
+    subgraph SOT["Source of truth"]
+        odoo["Odoo ERP<br/>(Postgres)"]
+    end
+
+    subgraph INT["Integration layer"]
+        outbox["Outbox worker"]
+        adapterML["Adapter ML<br/>(OAuth2)"]
+        adapterParis["Adapter Paris<br/>(API key)"]
+        meli["MercadoLibre<br/>sandbox"]
+        paris["paris-mock"]
+        receiver["Webhook Receiver<br/>signature · dedupe · bronze"]
+        events(["Pub/Sub<br/>marketplace.events"])
+        subrec["Subscriber + Reconciler<br/>reconcile vs Odoo · silver orders"]
+        dlq(["Pub/Sub<br/>marketplace.dlq"])
+        syncdlq(["Pub/Sub<br/>marketplace.sync.dlq"])
+    end
+
+    subgraph DATA["Data layer (BigQuery + dbt)"]
+        bronze[("bronze")]
+        silver[("silver")]
+        gold[("gold<br/>SLA · error trends")]
+    end
+
+    subgraph AI["AI layer"]
+        agent["Claude Code / Desktop"]
+        mcp["MCP Server<br/>read + write tools · IAM · audit log"]
+    end
+
+    subgraph OBS["Observability"]
+        otel["OpenTelemetry Collector"]
+        grafana["Grafana<br/>Comex Ops · Pipeline Health"]
+    end
+
+    odoo -->|outbox pattern| outbox
+    outbox --> adapterML --> meli
+    outbox --> adapterParis --> paris
+    outbox -.->|max retries| syncdlq
+
+    meli -->|webhooks| receiver
+    paris -->|webhooks| receiver
+    receiver --> events
+    events --> subrec
+    subrec -->|poison| dlq
+    subrec --> odoo
+
+    receiver -. raw .-> bronze
+    subrec -. silver .-> bronze
+    bronze -->|dbt| silver -->|dbt| gold
+
+    agent <-->|MCP protocol| mcp
+    mcp --> odoo
+    mcp --> subrec
+    mcp --> gold
+    mcp --> dlq
+
+    receiver -.-> otel
+    subrec -.-> otel
+    outbox -.-> otel
+    otel --> grafana

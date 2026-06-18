@@ -1,0 +1,29 @@
+# Local stack — Retail Order Sync Hub
+#
+# Phase 0: skeleton only. Networks and volumes are declared so later phases
+# just attach services. Real services land here starting in Phase 1
+# (odoo, odoo_db, app_db, otel-collector) and Phase 3 (pubsub-emulator,
+# webhook_receiver, paris_mock).
+
+name: retail-order-sync-hub
+
+networks:
+  rosh:
+    driver: bridge
+
+volumes:
+  odoo_db_data:
+  app_db_data:
+  odoo_filestore:
+
+services: {}
+  # --- Phase 1 ---
+  # odoo_db:        # PostgreSQL 16 dedicated to Odoo
+  # app_db:         # PostgreSQL 16 for operational data (outbox, dedupe, orders, audit)
+  # odoo:           # Odoo 17 Community — source of truth
+  # otel-collector: # OTLP receiver, stdout exporter (phase 1) -> Tempo/Prometheus (phase 6)
+  #
+  # --- Phase 2/3 ---
+  # paris_mock:        # FastAPI mock marketplace (API key auth)
+  # pubsub-emulator:   # gcr.io/google.com/cloudsdktool/cloud-sdk:emulators
+  # webhook_receiver:  # FastAPI receiver (signature + dedupe + bronze + publish)
