@@ -87,6 +87,7 @@ services:
     ports:
       - "4317:4317"   # OTLP gRPC
       - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus metrics (scraped by Prometheus in the obs stack)
     networks: [rosh]
 
   # Pub/Sub emulator (Phase 3) — same client as real GCP, no credentials.

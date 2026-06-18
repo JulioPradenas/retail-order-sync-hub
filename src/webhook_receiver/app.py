@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 
 from src.common.config import Settings, get_settings
 from src.common.logging import get_logger
+from src.common.metrics import webhook_received
 from src.common.otel import get_tracer
 from src.common.signing import SIGNATURE_HEADER, verify_signature
 from src.webhook_receiver.publisher import Publisher, PubSubPublisher
@@ -77,6 +78,9 @@ def create_app(
             span.set_attribute("event_id", event_id)
             result = store.record(source, event_id, payload, dict(request.headers))
             span.set_attribute("dedup_status", "new" if result.is_new else "duplicate")
+
+            dedup_status = "new" if result.is_new else "duplicate"
+            webhook_received.add(1, {"source": source, "dedup_status": dedup_status})
 
             if result.is_new:
                 envelope = {

@@ -1,0 +1,53 @@
+# Observability stack (Phase 6) — Grafana + Prometheus + Tempo.
+# Joins the main stack's network so it can scrape the OTel collector and so the
+# collector can push traces to Tempo. Bring up with `make obs-up`.
+
+name: retail-order-sync-hub-obs
+
+networks:
+  rosh:
+    external: true
+    name: retail-order-sync-hub_rosh
+
+volumes:
+  grafana_data:
+  prometheus_data:
+  tempo_data:
+
+services:
+  tempo:
+    image: grafana/tempo:2.6.1
+    command: ["-config.file=/etc/tempo.yml"]
+    volumes:
+      - ./tempo/tempo.yml:/etc/tempo.yml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "3200:3200"   # Tempo query API
+    networks: [rosh]
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks: [rosh]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_DEFAULT_THEME: light
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks: [rosh]

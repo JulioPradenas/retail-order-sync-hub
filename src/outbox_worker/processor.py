@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import random
+import time
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
@@ -17,6 +18,7 @@ from src.adapters.base import MarketplaceAdapter, OrderDTO
 from src.common.config import Settings, get_settings
 from src.common.db import session_scope
 from src.common.logging import get_logger
+from src.common.metrics import order_sync, order_sync_duration
 from src.common.models import OutboxEntry
 from src.webhook_receiver.publisher import Publisher, PubSubPublisher
 
@@ -53,6 +55,7 @@ async def process_entry(
 ) -> str:
     """Process a single entry; mutate it in place. Returns done|retry|dlq."""
     adapter = adapters.get(row.target_adapter)
+    t0 = time.perf_counter()
     try:
         if adapter is None:
             raise RuntimeError(f"no adapter registered for '{row.target_adapter}'")
@@ -70,10 +73,16 @@ async def process_entry(
                 target_adapter=row.target_adapter,
             )
             log.warning("outbox.dlq", outbox_id=row.id, attempts=row.attempts, error=str(exc))
+            attrs = {"target_adapter": row.target_adapter, "status": "dlq"}
+            order_sync.add(1, attrs)
+            order_sync_duration.record(time.perf_counter() - t0, attrs)
             return "dlq"
         row.status = "pending"
         row.next_attempt_at = now + _backoff(row.attempts)
         log.info("outbox.retry", outbox_id=row.id, attempts=row.attempts, error=str(exc))
+        attrs = {"target_adapter": row.target_adapter, "status": "retry"}
+        order_sync.add(1, attrs)
+        order_sync_duration.record(time.perf_counter() - t0, attrs)
         return "retry"
 
     row.status = "done"
@@ -84,6 +93,9 @@ async def process_entry(
         marketplace_order_id=result.marketplace_order_id,
         target_adapter=row.target_adapter,
     )
+    attrs = {"target_adapter": row.target_adapter, "status": "done"}
+    order_sync.add(1, attrs)
+    order_sync_duration.record(time.perf_counter() - t0, attrs)
     return "done"
 
 

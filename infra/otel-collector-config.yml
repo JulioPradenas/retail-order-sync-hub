@@ -1,5 +1,8 @@
-# OTel collector — Phase 1: receive OTLP, log to stdout.
-# Phase 6 replaces the debug exporter with Tempo (traces) + Prometheus (metrics).
+# OTel collector — receives OTLP from all services and fans out:
+#   traces  -> Tempo (and stdout debug)
+#   metrics -> Prometheus (scraped from :8889)
+# Tempo/Prometheus live in docker-compose.obs.yml; when the obs stack is down
+# the tempo exporter just retries (services keep running).
 
 receivers:
   otlp:
@@ -14,15 +17,23 @@ processors:
 
 exporters:
   debug:
-    verbosity: detailed
+    verbosity: normal
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    resource_to_telemetry_conversion:
+      enabled: true
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [debug]
+      exporters: [otlp/tempo, debug]
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [debug]
+      exporters: [prometheus]
