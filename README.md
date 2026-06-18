@@ -64,14 +64,14 @@ Targets disponibles: `make help`.
 
 ## Estado del proyecto
 
-Plan de ejecución por fases (V1, fases 0–11; V2 a GCP). Fase actual: **0 —
-setup, ADRs y CI**.
+Plan de ejecución por fases (V1, fases 0–11; V2 a GCP). Fase actual: **2 —
+MercadoLibre OAuth + paris-mock**.
 
 | Fase | Descripción | Estado |
 |---|---|---|
-| 0 | Setup repo, ADRs, CI | 🟡 en curso |
-| 1 | Odoo + Postgres + OTel collector | ⬜ |
-| 2 | MercadoLibre OAuth + paris-mock | ⬜ |
+| 0 | Setup repo, ADRs, CI | ✅ |
+| 1 | Odoo + Postgres + OTel collector | ✅ |
+| 2 | MercadoLibre OAuth + paris-mock | 🟡 en curso |
 | 3 | Webhook receiver + idempotencia + bronze | ⬜ |
 | 4 | Adapter + outbox + outbound sync | ⬜ |
 | 5 | Subscriber + reconciliación + silver | ⬜ |

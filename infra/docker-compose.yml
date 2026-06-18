@@ -14,6 +14,7 @@ volumes:
   odoo_db_data:
   app_db_data:
   odoo_filestore:
+  paris_mock_data:
 
 services:
   # PostgreSQL dedicated to Odoo (Odoo manages its own databases here).
@@ -87,3 +88,24 @@ services:
       - "4317:4317"   # OTLP gRPC
       - "4318:4318"   # OTLP HTTP
     networks: [rosh]
+
+  # paris-mock — controllable stand-in for the Paris marketplace (Phase 2).
+  paris_mock:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.app
+    command: ["python", "-m", "src.paris_mock"]
+    environment:
+      PARIS_API_KEY: ${PARIS_API_KEY:-change-me}
+      PARIS_API_SECRET: ${PARIS_API_SECRET:-change-me}
+      PARIS_MOCK_DB_PATH: /data/paris_mock.db
+    ports:
+      - "9100:9100"
+    volumes:
+      - paris_mock_data:/data
+    networks: [rosh]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9100/health').status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
