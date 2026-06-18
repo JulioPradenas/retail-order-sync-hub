@@ -55,6 +55,17 @@ class Settings(BaseSettings):
     paris_api_secret: str = "change-me"
     paris_mock_db_path: str = "paris_mock.db"
 
+    # MercadoLibre inbound webhook secret (HMAC shared secret)
+    ml_webhook_secret: str = "change-me"
+
+    # Pub/Sub (emulator in V1)
+    pubsub_emulator_host: str = "localhost:8085"
+    pubsub_project_id: str = "retail-order-sync-local"
+    pubsub_topic_events: str = "marketplace.events"
+    pubsub_sub_events: str = "marketplace.events.sub"
+    pubsub_topic_dlq: str = "marketplace.dlq"
+    pubsub_sub_dlq: str = "marketplace.dlq.sub"
+
     @property
     def app_db_dsn(self) -> str:
         """SQLAlchemy DSN for the operational Postgres (psycopg 3 driver)."""
