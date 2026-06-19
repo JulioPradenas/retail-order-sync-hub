@@ -1,0 +1,45 @@
+# Cloud Run service spec for the webhook receiver (V2.1).
+# Apply with: gcloud run services replace infra/cloudrun/service.yaml --region <REGION>
+# Placeholders (PROJECT_ID, REGION, IMAGE_TAG) are substituted by deploy.sh.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: webhook-receiver
+  labels:
+    app: retail-order-sync-hub
+    component: webhook-receiver
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        # Scale to zero when idle — keeps a portfolio deployment near $0.
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "4"
+    spec:
+      # Service account with the minimum roles (Pub/Sub publisher + Secret accessor).
+      serviceAccountName: webhook-receiver@PROJECT_ID.iam.gserviceaccount.com
+      containers:
+        - image: REGION-docker.pkg.dev/PROJECT_ID/rosh/webhook-receiver:IMAGE_TAG
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ENV
+              value: production
+            - name: USE_SECRET_MANAGER
+              value: "true"
+            - name: GCP_PROJECT_ID
+              value: PROJECT_ID
+            - name: SECRET_MANAGER_SECRETS
+              value: PARIS_API_SECRET,ML_WEBHOOK_SECRET
+            - name: PUBSUB_PROJECT_ID
+              value: PROJECT_ID
+            # Point the OTLP exporter at the OTel collector sidecar or a managed endpoint.
+            # For Cloud Trace, see docs/deploy-gcp.md (V2.3).
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ""
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi

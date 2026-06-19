@@ -9,10 +9,12 @@ from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from src.common.config import get_settings
 from src.common.logging import configure_logging
 from src.common.otel import setup_metrics, setup_tracing
+from src.common.secrets import maybe_load_secrets
 from src.webhook_receiver.app import create_app
 
 
 def main() -> None:
+    maybe_load_secrets()  # V2: pull HMAC secrets from Secret Manager before Settings parse
     settings = get_settings()
     configure_logging(settings.log_level)
     setup_tracing(
@@ -26,7 +28,7 @@ def main() -> None:
     SQLAlchemyInstrumentor().instrument()
     app = create_app(settings=settings)
     FastAPIInstrumentor.instrument_app(app)
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=settings.http_port)
 
 
 if __name__ == "__main__":
