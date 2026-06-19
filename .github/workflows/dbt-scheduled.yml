@@ -1,0 +1,55 @@
+name: dbt scheduled
+
+# Refresh the BigQuery silver/gold models on a schedule (V2.3). Mirrors the auth
+# pattern of dbt-docs.yml. Requires repo secrets GCP_WORKLOAD_IDENTITY_PROVIDER
+# and GCP_SERVICE_ACCOUNT. With a BigQuery Sandbox project there is no cost.
+on:
+  schedule:
+    # Every 6 hours.
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: dbt-scheduled
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Copy dbt profiles
+        run: |
+          mkdir -p ~/.dbt
+          cp dbt/profiles.yml.template ~/.dbt/profiles.yml
+
+      - name: dbt build (run + test)
+        working-directory: dbt
+        env:
+          BQ_PROJECT_ID: ${{ vars.BQ_PROJECT_ID || 'retail-order-sync-hub' }}
+          BQ_LOCATION: ${{ vars.BQ_LOCATION || 'US' }}
+        run: |
+          uv run dbt deps
+          uv run dbt build --target dev
