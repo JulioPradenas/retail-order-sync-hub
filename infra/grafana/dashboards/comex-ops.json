@@ -15,7 +15,7 @@
       "datasource": { "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum by (source, dedup_status) (rate(webhook_received_total[1m]) * 60)",
+          "expr": "sum by (source, dedup_status) (rate(webhook_received_total[5m]) * 60)",
           "legendFormat": "{{source}} / {{dedup_status}}"
         }
       ],
@@ -31,7 +31,7 @@
       "datasource": { "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum by (target_adapter, status) (rate(order_sync_total[1m]) * 60)",
+          "expr": "sum by (target_adapter, status) (rate(order_sync_total[5m]) * 60)",
           "legendFormat": "{{target_adapter}} / {{status}}"
         }
       ],
@@ -61,7 +61,7 @@
       "datasource": { "uid": "prometheus" },
       "targets": [
         {
-          "expr": "dlq_depth",
+          "expr": "max(dlq_depth)",
           "legendFormat": "DLQ"
         }
       ],
