@@ -36,6 +36,10 @@ dev = [
     "hypothesis>=6.112",
     "pre-commit>=3.8",
 ]
+# Local-only ops console (Streamlit). Not part of the runtime image.
+console = [
+    "streamlit>=1.38",
+]
 
 [tool.ruff]
 target-version = "py311"
