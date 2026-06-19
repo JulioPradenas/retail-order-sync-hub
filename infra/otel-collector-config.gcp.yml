@@ -1,0 +1,40 @@
+# OTel collector config for GCP (V2.3) — exports traces to Cloud Trace and
+# metrics to Cloud Monitoring instead of local Tempo/Prometheus.
+#
+# Switching is config-only: services keep sending OTLP to the collector
+# (OTEL_EXPORTER_OTLP_ENDPOINT unchanged). Point the collector at this file:
+#   --config=/etc/otel-collector-config.gcp.yml
+# Auth uses Application Default Credentials (the collector's service account).
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+  # Cloud Monitoring requires a monitored-resource; detect it from the runtime.
+  resourcedetection:
+    detectors: [env, gcp]
+    timeout: 5s
+
+exporters:
+  googlecloud:
+    project: "${GCP_PROJECT_ID}"
+    # Traces go to Cloud Trace by default.
+  googlemanagedprometheus:
+    project: "${GCP_PROJECT_ID}"
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [resourcedetection, batch]
+      exporters: [googlecloud]
+    metrics:
+      receivers: [otlp]
+      processors: [resourcedetection, batch]
+      exporters: [googlemanagedprometheus]

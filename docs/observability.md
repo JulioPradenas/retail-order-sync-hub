@@ -66,3 +66,20 @@ Tempo recibe spans via OTLP/gRPC. En Grafana → Explore → datasource Tempo, b
 - `rosh-outbox-worker`
 - `rosh-subscriber`
 - `rosh-reconciler`
+
+## Switch a Cloud Trace (V2.3)
+
+El cambio de Tempo local a Cloud Trace es **solo config del collector** — los
+servicios siguen enviando OTLP al collector sin cambiar nada.
+
+1. Apunta el collector a `infra/otel-collector-config.gcp.yml` (usa el exporter
+   `googlecloud` para trazas y `googlemanagedprometheus` para métricas):
+   ```
+   --config=/etc/otel-collector-config.gcp.yml
+   ```
+2. Define `GCP_PROJECT_ID` en el entorno del collector.
+3. Auth via Application Default Credentials (service account del collector con
+   `roles/cloudtrace.agent` y `roles/monitoring.metricWriter`).
+
+Las trazas aparecen en la consola GCP → Trace; las métricas en Cloud Monitoring.
+Requiere billing activo (no disponible en BigQuery Sandbox).
