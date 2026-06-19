@@ -5,7 +5,7 @@ SHELL := /bin/bash
 COMPOSE      := docker compose -f infra/docker-compose.yml
 COMPOSE_OBS  := docker compose -f infra/docker-compose.obs.yml
 
-.PHONY: help fix check test up down logs migrate seed obs-up obs-down dbt-run dbt-test dbt-docs chaos demo
+.PHONY: help fix check test up down logs migrate seed obs-up obs-down dbt-run dbt-test dbt-docs chaos demo console
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -60,3 +60,6 @@ chaos: ## Flood the DLQ with 10 demo entries (requires make up && make migrate)
 	uv run python scripts/chaos/flood_dlq.py --count 10
 
 demo: up migrate seed chaos ## Full demo setup: stack + migrations + seed data + DLQ entries
+
+console: ## Launch the local control panel (Streamlit)
+	uv run --group console streamlit run ops_console/app.py

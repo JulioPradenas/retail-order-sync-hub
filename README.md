@@ -96,6 +96,21 @@ Diagrama Mermaid completo: [`docs/diagrams/architecture.mmd`](docs/diagrams/arch
 
 ---
 
+## Panel de control (la forma más simple)
+
+Para demos sin tocar la terminal: un panel Streamlit local con botones para levantar
+el stack, ver el estado de cada contenedor en vivo y abrir Grafana/Prometheus.
+
+```bash
+make console   # abre http://localhost:8501
+```
+
+Botones para `up` / `migrate` / `seed` / `chaos` / `obs-up`, badges de estado por
+servicio, accesos directos a los dashboards y health checks. Corre local (ejecuta
+`make`/`docker` en tu máquina) — no exponer públicamente.
+
+---
+
 ## Quickstart (10 minutos)
 
 ### Prerequisitos
