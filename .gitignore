@@ -31,3 +31,7 @@ dbt/profiles.yml
 
 # OS
 .DS_Store
+
+# Local-only: planning doc + Claude Code settings (kept in the folder, not published)
+retail-order-sync-hub-plan.md
+.claude/settings.local.json
