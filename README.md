@@ -246,6 +246,10 @@ Cada operación write queda registrada en `mcp_audit_log` con user_id, scope, pa
 | [`docs/observability.md`](docs/observability.md) | Stack OTel, catálogo de métricas, dashboards |
 | [`docs/adapters.md`](docs/adapters.md) | Contratos de adapters, retry policy |
 | [`docs/fde-narrative.md`](docs/fde-narrative.md) | Narrativa FDE: decisiones, trade-offs, contexto |
+| [`docs/deploy-gcp.md`](docs/deploy-gcp.md) | Deploy a GCP (Cloud Run, Pub/Sub, BigQuery Sandbox) |
+| [`docs/cost-analysis.md`](docs/cost-analysis.md) | Análisis de costos GCP (objetivo <$10/mes) |
+| [`docs/security-review.md`](docs/security-review.md) | Security review checklist |
+| [`docs/blog/design-decisions.md`](docs/blog/design-decisions.md) | Outbox vs CDC, idempotencia, IAM del MCP |
 | [`adr/`](adr/) | Architecture Decision Records (5 ADRs) |
 | [`dbt/`](dbt/) | Modelos dbt, contratos de schema, tests singulares |
 
@@ -295,6 +299,21 @@ adr/
 | 9 | MCP write tools + audit log | #10 |
 | 10 | Tests unitarios + chaos (85% coverage) | #11 |
 | 11 | Docs + narrativa FDE | #12 |
+
+### V2 — GCP productivo (deploy-ready)
+
+Artefactos de despliegue listos y verificados localmente. El deploy en vivo es un
+comando con cuenta GCP autenticada (ver [`docs/deploy-gcp.md`](docs/deploy-gcp.md)).
+
+| Sub-fase | Descripción | PR | Verificación local |
+|---|---|---|---|
+| V2.1 | Cloud Run: Dockerfile productivo + Secret Manager | #15 | `docker build` + contenedor honra `PORT` + `/health` 200 |
+| V2.2 | Pub/Sub real + IAM least-privilege (Terraform) | #16 | `terraform validate` → Success |
+| V2.3 | dbt scheduled (cron) + switch a Cloud Trace | #17 | YAML válido, `make check` |
+| V2.4 | Cost analysis + security review + blog técnico | #18 | docs |
+
+BigQuery Sandbox corre sin tarjeta; Cloud Run / Pub/Sub / Secret Manager requieren
+billing activo.
 
 ---
 
