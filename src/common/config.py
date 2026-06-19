@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -91,6 +92,16 @@ class Settings(BaseSettings):
     bq_gold_dataset: str = "gold"
     # rows per BQ insert batch
     bq_batch_size: int = 500
+
+    # Cloud Run / GCP production (V2)
+    #: HTTP bind port. Cloud Run injects PORT (default 8080); 8000 keeps local compose stable.
+    http_port: int = Field(default=8000, validation_alias=AliasChoices("HTTP_PORT", "PORT"))
+    #: when true, secrets are pulled from Secret Manager into the env before Settings parse.
+    use_secret_manager: bool = False
+    #: GCP project that owns the Secret Manager secrets. Falls back to bq_project_id when empty.
+    gcp_project_id: str = ""
+    #: comma-separated Secret Manager secret IDs to load (each maps to an UPPER_SNAKE env var).
+    secret_manager_secrets: str = "PARIS_API_SECRET,ML_WEBHOOK_SECRET"
 
     @property
     def app_db_dsn(self) -> str:

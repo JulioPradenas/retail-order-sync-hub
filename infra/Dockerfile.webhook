@@ -1,0 +1,37 @@
+# Production image for the webhook receiver (Cloud Run, V2.1).
+# Multi-stage: deps resolved with uv in a builder, runtime is a slim non-root
+# image carrying only the virtualenv and src. Listens on $PORT (Cloud Run).
+
+FROM python:3.11-slim AS builder
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+WORKDIR /app
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+# Resolve dependencies first (cached layer). --no-dev keeps the runtime lean.
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+
+FROM python:3.11-slim AS runtime
+
+# Non-root user — Cloud Run does not require it but it is defense-in-depth.
+RUN groupadd --system app && useradd --system --gid app --no-create-home app
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    ENV=production
+
+WORKDIR /app
+COPY --from=builder /opt/venv /opt/venv
+COPY src ./src
+
+USER app
+
+# Cloud Run sets PORT; config maps PORT -> http_port. EXPOSE is documentation only.
+EXPOSE 8080
+CMD ["python", "-m", "src.webhook_receiver"]
