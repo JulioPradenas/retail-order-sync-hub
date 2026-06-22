@@ -5,7 +5,7 @@ SHELL := /bin/bash
 COMPOSE      := docker compose -f infra/docker-compose.yml
 COMPOSE_OBS  := docker compose -f infra/docker-compose.obs.yml
 
-.PHONY: help fix check test up down logs migrate seed obs-up obs-down dbt-run dbt-test dbt-docs chaos demo console
+.PHONY: help fix check test up down logs migrate seed obs-up obs-down dbt-run dbt-test dbt-docs chaos webhook-demo sync-demo demo console
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -58,6 +58,12 @@ dbt-docs: ## Generate dbt docs
 
 chaos: ## Flood the DLQ with 10 demo entries (requires make up && make migrate)
 	uv run python scripts/chaos/flood_dlq.py --count 10
+
+webhook-demo: ## Send a burst of live webhooks so Grafana panels show data (requires make up)
+	uv run python scripts/send_webhooks.py --count 40
+
+sync-demo: ## Enqueue pending orders so the worker emits live retry/dlq outcomes (requires make up && make migrate)
+	uv run python scripts/sync_demo.py --count 12
 
 demo: up migrate seed chaos ## Full demo setup: stack + migrations + seed data + DLQ entries
 

@@ -130,10 +130,20 @@ with col_actions:
     action_button("Migrar BD (make migrate)", "migrate", help_text="Alembic upgrade head")
     action_button("Seed Odoo (make seed)", "seed", help_text="Órdenes demo reproducibles")
     action_button("Generar DLQ demo (make chaos)", "chaos", help_text="10 entradas en el DLQ")
+    action_button(
+        "Generar sync outcomes (make sync-demo)",
+        "sync-demo",
+        help_text="Encola órdenes que el worker falla → retry/dlq en vivo en Grafana",
+    )
 
     st.markdown("**Observabilidad**")
     action_button(
         "Levantar observabilidad (make obs-up)", "obs-up", help_text="Grafana + Prometheus + Tempo"
+    )
+    action_button(
+        "Generar tráfico de webhooks (make webhook-demo)",
+        "webhook-demo",
+        help_text="40 webhooks en vivo para poblar los paneles de Grafana",
     )
     action_button(
         "Bajar observabilidad (make obs-down)", "obs-down", help_text="Detiene observabilidad"
