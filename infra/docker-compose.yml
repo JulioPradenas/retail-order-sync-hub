@@ -106,6 +106,23 @@ services:
       timeout: 5s
       retries: 12
 
+  # One-shot: create Pub/Sub topics + subscriptions on the emulator, then exit.
+  # The emulator starts empty (in-memory), so this must run before any worker
+  # touches a subscription. Idempotent — safe on every `up`.
+  pubsub_init:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.app
+    command: ["python", "-m", "scripts.init_pubsub"]
+    depends_on:
+      pubsub-emulator:
+        condition: service_healthy
+    environment:
+      PUBSUB_EMULATOR_HOST: pubsub-emulator:8085
+      PUBSUB_PROJECT_ID: retail-order-sync-local
+    restart: "no"
+    networks: [rosh]
+
   # Webhook receiver (Phase 3) — signature + dedupe + bronze + publish.
   webhook_receiver:
     build:
@@ -117,6 +134,8 @@ services:
         condition: service_healthy
       pubsub-emulator:
         condition: service_healthy
+      pubsub_init:
+        condition: service_completed_successfully
     environment:
       APP_DB_HOST: app_db
       APP_DB_PORT: "5432"
@@ -148,6 +167,8 @@ services:
         condition: service_healthy
       pubsub-emulator:
         condition: service_healthy
+      pubsub_init:
+        condition: service_completed_successfully
       odoo:
         condition: service_healthy
       paris_mock:
@@ -177,6 +198,8 @@ services:
         condition: service_healthy
       pubsub-emulator:
         condition: service_healthy
+      pubsub_init:
+        condition: service_completed_successfully
       odoo:
         condition: service_healthy
     environment: &worker_env

@@ -22,6 +22,11 @@ class OdooClient:
         self._uid: int = cast(int, uid)
         self._models = xmlrpc.client.ServerProxy(f"{settings.odoo_url}/xmlrpc/2/object")
 
+    @property
+    def uid(self) -> int:
+        """Authenticated user id (used to grant the seed user its own groups)."""
+        return self._uid
+
     def execute(self, model: str, method: str, *args: Any, **kwargs: Any) -> Any:
         return self._models.execute_kw(
             self._db, self._uid, self._password, model, method, list(args), kwargs

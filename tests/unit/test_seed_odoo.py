@@ -39,9 +39,12 @@ def test_upsert_updates_when_present(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_seed_builds_expected_summary(monkeypatch: pytest.MonkeyPatch) -> None:
     client = OdooClient.__new__(OdooClient)
+    client._uid = 2
     monkeypatch.setattr(client, "upsert", lambda model, key, values: 1)
 
     def fake_execute(model: str, method: str, *args: Any, **kwargs: Any) -> Any:
+        if method == "check_object_reference":
+            return ["res.groups", 23]
         return [] if method == "search" else 555
 
     monkeypatch.setattr(client, "execute", fake_execute)
