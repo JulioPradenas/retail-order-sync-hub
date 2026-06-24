@@ -31,9 +31,22 @@ PARTNERS: list[dict[str, Any]] = [
 ]
 ORDER_REF = "ROSH-ORDER-0001"
 
+# Odoo boots with `--init base,sale_management`, which leaves the admin user
+# without the Sales group, so creating a sale.order over XML-RPC is denied.
+# Grant it here (idempotent: re-adding an existing group is a no-op) so that a
+# fresh `make up && make seed` always works without manual steps.
+SALES_GROUP_XMLID = ("sales_team", "group_sale_manager")
+
+
+def ensure_sales_access(client: OdooClient) -> None:
+    """Make sure the seed user can read/write sale orders."""
+    _, group_id = client.execute("ir.model.data", "check_object_reference", *SALES_GROUP_XMLID)
+    client.execute("res.users", "write", [client.uid], {"groups_id": [(4, group_id)]})
+
 
 def seed(client: OdooClient) -> dict[str, Any]:
     """Apply the seed and return a summary of created/updated ids."""
+    ensure_sales_access(client)
     product_ids = {
         p["default_code"]: client.upsert("product.product", "default_code", p) for p in PRODUCTS
     }

@@ -13,6 +13,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 COPY src ./src
+COPY scripts ./scripts
 
 # Default: run paris-mock. Override `command` per service in compose.
 CMD ["python", "-m", "src.paris_mock"]
