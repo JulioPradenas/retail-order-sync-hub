@@ -123,6 +123,26 @@ services:
     restart: "no"
     networks: [rosh]
 
+  # One-shot: apply Alembic migrations to app_db, then exit. Workers query the
+  # schema on startup, so they must wait for this — otherwise they crash with
+  # "relation ... does not exist". Idempotent — safe on every `up`.
+  migrate:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.app
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      app_db:
+        condition: service_healthy
+    environment:
+      APP_DB_HOST: app_db
+      APP_DB_PORT: "5432"
+      APP_DB_USER: rosh
+      APP_DB_PASSWORD: change-me
+      APP_DB_NAME: rosh
+    restart: "no"
+    networks: [rosh]
+
   # Webhook receiver (Phase 3) — signature + dedupe + bronze + publish.
   webhook_receiver:
     build:
@@ -135,6 +155,8 @@ services:
       pubsub-emulator:
         condition: service_healthy
       pubsub_init:
+        condition: service_completed_successfully
+      migrate:
         condition: service_completed_successfully
     environment:
       APP_DB_HOST: app_db
@@ -169,6 +191,8 @@ services:
         condition: service_healthy
       pubsub_init:
         condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
       odoo:
         condition: service_healthy
       paris_mock:
@@ -200,6 +224,8 @@ services:
         condition: service_healthy
       pubsub_init:
         condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
       odoo:
         condition: service_healthy
     environment: &worker_env
@@ -223,6 +249,8 @@ services:
     depends_on:
       app_db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       odoo:
         condition: service_healthy
     environment: *worker_env
