@@ -14,6 +14,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 COPY src ./src
 COPY scripts ./scripts
+COPY alembic.ini ./
+COPY migrations ./migrations
 
 # Default: run paris-mock. Override `command` per service in compose.
 CMD ["python", "-m", "src.paris_mock"]
