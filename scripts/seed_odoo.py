@@ -40,9 +40,7 @@ SALES_GROUP_XMLID = ("sales_team", "group_sale_manager")
 
 def ensure_sales_access(client: OdooClient) -> None:
     """Make sure the seed user can read/write sale orders."""
-    _, group_id = client.execute(
-        "ir.model.data", "check_object_reference", *SALES_GROUP_XMLID
-    )
+    _, group_id = client.execute("ir.model.data", "check_object_reference", *SALES_GROUP_XMLID)
     client.execute("res.users", "write", [client.uid], {"groups_id": [(4, group_id)]})
 
 
